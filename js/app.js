@@ -358,8 +358,8 @@ class App {
       this.createSampleProject();
     });
 
-    // 画像ファイルアップロード
-    document.getElementById('planFileInput')?.addEventListener('change', (e) => {
+    // 画像ファイルアップロード (写真アルバム & カメラ撮影)
+    const handleFileChange = (e) => {
       const file = e.target.files?.[0];
       if (file) {
         const reader = new FileReader();
@@ -368,7 +368,13 @@ class App {
         };
         reader.readAsDataURL(file);
       }
-    });
+      // 再選択できるように値をリセット
+      e.target.value = '';
+    };
+
+    document.getElementById('planAlbumInput')?.addEventListener('change', handleFileChange);
+    document.getElementById('planCameraInput')?.addEventListener('change', handleFileChange);
+    document.getElementById('planFileInput')?.addEventListener('change', handleFileChange);
 
     // パース補正確定
     document.getElementById('btnApplyPerspective')?.addEventListener('click', () => {

@@ -128,14 +128,28 @@
           <div id="panel-plan" class="step-panel" style="display: none;">
             <div class="guide-box">
               <div class="guide-title">📷 図面を取り込む</div>
-              <p>カメラで図面を直接撮影するか、スマホ内の写真を選んでください。</p>
+              <p>手持ちの図面写真・チラシ画像、またはカメラから取り込んでください。</p>
             </div>
-            <div class="upload-zone">
-              <label for="planFileInput" class="btn-upload-camera">
-                <span style="font-size: 24px;">📸</span>
-                <span>カメラで撮影 / 写真を選択</span>
+            <div class="upload-buttons-container">
+              <!-- 写真アルバム・ライブラリから選ぶ (captureなしでiOSのアルバムが開く) -->
+              <label for="planAlbumInput" class="btn-upload-choice primary-choice">
+                <span class="upload-icon">🖼️</span>
+                <div class="upload-label-group">
+                  <span class="upload-main-text">写真アルバムから選択</span>
+                  <span class="upload-sub-text">スマホ内の保存写真・スクショ</span>
+                </div>
               </label>
-              <input type="file" id="planFileInput" accept="image/*" capture="environment" style="display: none;">
+              <input type="file" id="planAlbumInput" accept="image/*" style="display: none;">
+
+              <!-- カメラでその場で撮影 (capture="environment") -->
+              <label for="planCameraInput" class="btn-upload-choice secondary-choice">
+                <span class="upload-icon">📸</span>
+                <div class="upload-label-group">
+                  <span class="upload-main-text">カメラで今すぐ撮影</span>
+                  <span class="upload-sub-text">チラシや紙の図面を直撮り</span>
+                </div>
+              </label>
+              <input type="file" id="planCameraInput" accept="image/*" capture="environment" style="display: none;">
             </div>
           </div>
 
