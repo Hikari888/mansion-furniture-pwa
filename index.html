@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <!-- iPhone 16 / 16 Pro の Dynamic Island & セーフエリア全画面表示に対応 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>マドプレ - マンション図面・家具配置シミュレーター</title>
+  
+  <!-- PWA & iOS Safari ネイティブ最適化 Meta -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="マドプレ">
+  
+  <!-- iOS ホーム画面アプリアイコン (iPhone Retina @3x 最適化) -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%232563eb'/><text x='90' y='118' font-size='96' text-anchor='middle' fill='white'>📐</text></svg>">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%232563eb'/><text x='16' y='23' font-size='20' text-anchor='middle' fill='white'>📐</text></svg>">
+
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div id="appRoot">
+    
+    <!-- iPhone セーフエリア対応ヘッダー -->
+    <header class="header-bar">
+      <div class="brand">
+        <span class="brand-icon">📐</span>
+        <span class="brand-title">マドプレ</span>
+      </div>
+
+      <div class="project-controls">
+        <select id="projectSelect" class="project-select" aria-label="物件選択"></select>
+        <button id="btnNewProject" class="btn-icon" title="新規物件作成">＋</button>
+        <button id="btnLoadSample" class="btn-icon" title="サンプル物件">🏢 見本</button>
+        <button id="btnExportImage" class="btn-icon" title="画像保存">💾 出力</button>
+      </div>
+    </header>
+
+    <!-- モバイル最適化ステップバー -->
+    <nav class="step-nav">
+      <button class="tab-step-btn active" data-step="furniture">
+        <span>🛋️</span> 配置シミュレーション
+      </button>
+      <button class="tab-step-btn" data-step="plan">
+        <span>📷</span> ① 図面取込
+      </button>
+      <button class="tab-step-btn" data-step="perspective">
+        <span>🔍</span> ② パース補正
+      </button>
+      <button class="tab-step-btn" data-step="scale">
+        <span>📏</span> ③ 縮尺設定
+      </button>
+      <button class="tab-step-btn" data-step="attribute">
+        <span>🚪</span> ④ ドア・窓
+      </button>
+    </nav>
+
+    <!-- メインキャンバス領域 -->
+    <main class="main-content">
+      <div id="canvasContainer">
+        <!-- Dynamic Island 直下に浮かぶ干渉警告ピル -->
+        <div id="conflictAlertBox" class="conflict-alert" style="display: none;"></div>
+
+        <canvas id="mainCanvas"></canvas>
+
+        <!-- iPhone用 親指フローティング操作ドック (家具選択時に下部から浮上) -->
+        <div id="floatingActionDock" class="floating-dock" style="display: none;">
+          <div class="dock-header">
+            <div class="dock-info">
+              <span id="dockItemTitle" class="dock-title">家具名</span>
+              <span id="dockItemSubtitle" class="dock-subtitle">100×200cm</span>
+            </div>
+            <span id="dockRotationBadge" class="dock-badge">0°</span>
+          </div>
+
+          <!-- ドア専用オプション (左右吊元反転) -->
+          <div id="dockDoorControls" style="display: none;" class="dock-subrow">
+            <button id="btnDockFlipDoor" class="dock-subbtn">🔄 吊元を左右反転</button>
+          </div>
+
+          <div class="dock-actions">
+            <button id="btnDockRotate" class="dock-btn">
+              <span class="dock-btn-icon">↻</span>
+              <span class="dock-btn-label">90°回転</span>
+            </button>
+            <button id="btnDockFineRotate" class="dock-btn">
+              <span class="dock-btn-icon">⟳</span>
+              <span class="dock-btn-label">+15°微調整</span>
+            </button>
+            <button id="btnDockDelete" class="dock-btn dock-btn-danger">
+              <span class="dock-btn-icon">🗑️</span>
+              <span class="dock-btn-label">削除</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- iPhone 16 最適化：iOS風ボトムシート (スワイプ・タップで伸縮可能) -->
+      <aside id="bottomSheet" class="bottom-sheet sheet-half">
+        <!-- シートのグラブバー (つまみ) -->
+        <div id="sheetHandle" class="sheet-handle-area">
+          <div class="sheet-handle-pill"></div>
+        </div>
+
+        <!-- 案切り替えタブ (片手でスワイプ切替) -->
+        <div class="sheet-pattern-bar">
+          <div id="layoutTabContainer" class="pattern-tabs"></div>
+          <button id="btnAddLayoutPattern" class="btn-sheet-mini">＋ 案</button>
+          <button id="btnDuplicateLayout" class="btn-sheet-mini">📋 コピー</button>
+        </div>
+
+        <!-- シートコンテンツ群 -->
+        <div class="sheet-content">
+          
+          <!-- ① 家具パレットパネル -->
+          <div id="panel-furniture" class="step-panel" style="display: block;">
+            <div class="sheet-section-header">
+              <span class="sheet-section-title">家具一覧（タップで配置）</span>
+              <button id="btnOpenCustomModal" class="btn-pill-primary">＋ 手持ち家具を登録</button>
+            </div>
+            <div id="furnitureList" class="furniture-grid-modern"></div>
+          </div>
+
+          <!-- ② 図面取込パネル -->
+          <div id="panel-plan" class="step-panel" style="display: none;">
+            <div class="guide-box">
+              <div class="guide-title">📷 図面を取り込む</div>
+              <p>カメラで図面を直接撮影するか、スマホ内の写真を選んでください。</p>
+            </div>
+            <div class="upload-zone">
+              <label for="planFileInput" class="btn-upload-camera">
+                <span style="font-size: 24px;">📸</span>
+                <span>カメラで撮影 / 写真を選択</span>
+              </label>
+              <input type="file" id="planFileInput" accept="image/*" capture="environment" style="display: none;">
+            </div>
+          </div>
+
+          <!-- ③ パース補正パネル -->
+          <div id="panel-perspective" class="step-panel" style="display: none;">
+            <div class="guide-box">
+              <div class="guide-title">🔍 斜め撮影のパース歪みを補正</div>
+              <p>図面の4隅にある青いピンを部屋の外枠に合わせ、「補正を実行」を押してください。</p>
+            </div>
+            <button id="btnApplyPerspective" class="btn-full-action">✨ 平面図に歪み補正する</button>
+          </div>
+
+          <!-- ④ 縮尺設定パネル -->
+          <div id="panel-scale" class="step-panel" style="display: none;">
+            <div class="guide-box">
+              <div class="guide-title">📏 スケール（縮尺）の指定</div>
+              <p>図面上の基準となる場所（ドア幅や柱）に2つの赤ピンを合わせ、実寸を入力してください。</p>
+            </div>
+            <div class="input-inline-group">
+              <label>基準寸法 (cm):</label>
+              <input type="number" id="scaleRealInput" class="input-modern" value="80" inputmode="numeric">
+              <button id="btnConfirmScale" class="btn-inline-action">決定</button>
+            </div>
+            <div class="hint-text">※一般的な片開きドア幅は約75〜85cmです</div>
+          </div>
+
+          <!-- ⑤ ドア・窓設定パネル -->
+          <div id="panel-attribute" class="step-panel" style="display: none;">
+            <div class="guide-box">
+              <div class="guide-title">🚪 窓・ドアの配置</div>
+              <p>図面上の位置にドアや窓を置いてください。家具との干渉をリアルタイムに検知します。</p>
+            </div>
+            <div class="button-row">
+              <button id="btnAddDoor" class="btn-choice">🚪 開き戸を追加 (80cm)</button>
+              <button id="btnAddWindow" class="btn-choice">🪟 窓を追加 (180cm)</button>
+            </div>
+          </div>
+
+        </div>
+      </aside>
+    </main>
+
+    <!-- iPhone セーフエリア対応免責事項フッター -->
+    <footer class="footer-safe-area">
+      <div class="footer-inner">
+        <span class="disclaimer-snippet">※現地実測必須：梁・巾木・コンセント等で有効寸法は変動します</span>
+        <button id="btnDisclaimerInfo" class="btn-text-info">免責事項</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- 手持ち家具登録モーダル (iOS スタイル) -->
+  <div id="customFurnitureModal" class="modal-overlay" style="display: none;">
+    <div class="modal-ios-card">
+      <div class="modal-ios-header">
+        <h3 class="modal-ios-title">手持ち家具の登録</h3>
+        <button id="btnCloseCustomModal" class="modal-ios-close">✕</button>
+      </div>
+      <form id="customFurnitureForm">
+        <div class="form-row-modern">
+          <label>品名</label>
+          <input type="text" id="customName" class="input-modern" placeholder="例: カウチソファ" required>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-row-modern">
+            <label>幅 (cm)</label>
+            <input type="number" id="customWidth" class="input-modern" placeholder="120" required min="10" max="500" inputmode="numeric">
+          </div>
+          <div class="form-row-modern">
+            <label>奥行 (cm)</label>
+            <input type="number" id="customDepth" class="input-modern" placeholder="70" required min="10" max="500" inputmode="numeric">
+          </div>
+        </div>
+        <div class="form-row-modern">
+          <label>表示カラー</label>
+          <div class="color-preset-picker">
+            <input type="color" id="customColor" value="#3b82f6" class="color-picker-input">
+            <span style="font-size: 13px; color: var(--text-muted);">図面上で識別しやすい色を選択</span>
+          </div>
+        </div>
+        <button type="submit" class="btn-full-action" style="margin-top: 14px;">家具を追加して図面に配置</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- PWA Service Worker 登録 -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch((err) => {
+          console.log('SW registration:', err);
+        });
+      });
+    }
+  </script>
+  <!-- メインスクリプト -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

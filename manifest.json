@@ -1,0 +1,24 @@
+{
+  "name": "マドプレ - マンション図面・家具シミュレーター",
+  "short_name": "マドプレ",
+  "description": "マンションの図面写真から家具配置シミュレーションができるPWA。パース歪み補正、スケール自動推定、ドア・窓干渉警告に対応。",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f2f2f7",
+  "theme_color": "#007aff",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='42' fill='%23007aff'/><text x='96' y='126' font-size='100' text-anchor='middle' fill='white'>📐</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%23007aff'/><text x='256' y='335' font-size='270' text-anchor='middle' fill='white'>📐</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
